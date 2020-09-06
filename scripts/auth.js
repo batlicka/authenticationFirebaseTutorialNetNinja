@@ -10,12 +10,19 @@ const pozdrav = (arg) => {
 auth.onAuthStateChanged((user) => {
   if (user) {
     console.log("user is logged in as" + user.email);
-    db.collection("guides")
-      .get()
-      .then((snapshot) => {
+    db.collection("guides").onSnapshot(
+      (snapshot) => {
         setupGuides(snapshot.docs);
-      });
+      },
+      (err) => console.log(err.message)
+    );
     setupUI(user);
+    // //load data from database after represh page - there si no listener
+    // db.collection("guides")
+    //   .get()
+    //   .then((snapshot) => {
+    //     setupGuides(snapshot.docs);
+    //   });
   } else {
     setupGuides([]);
     setupUI();
@@ -23,39 +30,48 @@ auth.onAuthStateChanged((user) => {
 });
 
 //create new guide
-const createForm = document.querySelector('#create-form');
-createForm.addEventListener('submit', (e) => {
+const createForm = document.querySelector("#create-form");
+createForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  db.collection('guides').add({
-    title: createForm['title'].value,
-    content: createForm['content'].value
-  }).then(() => {
-    // close the create modal & reset form
-    const modal = document.querySelector('#modal-create');
-    M.Modal.getInstance(modal).close();
-    createForm.reset();
-  }).catch(err => {
-    console.log(err.message);
-  });
+  db.collection("guides")
+    .add({
+      title: createForm["title"].value,
+      content: createForm["content"].value,
+    })
+    .then(() => {
+      // close the create modal & reset form
+      const modal = document.querySelector("#modal-create");
+      M.Modal.getInstance(modal).close();
+      createForm.reset();
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
 });
 
 // signup
 const signupForm = document.querySelector("#signup-form");
 signupForm.addEventListener("submit", (e) => {
   e.preventDefault();
-
   // get user info
   const email = signupForm["signup-email"].value;
   const password = signupForm["signup-password"].value;
-
   // sign up the user
-  auth.createUserWithEmailAndPassword(email, password).then((cred) => {
-    console.log(email, password);
-    // close the signup modal & reset form
-    const modal = document.querySelector("#modal-signup");
-    M.Modal.getInstance(modal).close();
-    signupForm.reset();
-  });
+  auth
+    .createUserWithEmailAndPassword(email, password)
+    .then((cred) => {
+      //when we add colleciont "users" firestore automatically create colleciton and it's ID
+      return db
+        .collection("users")
+        .doc(cred.user.uid)
+        .set({ bio: signupForm["signup-bio"].value });
+    })
+    .then(() => {
+      // close the signup modal & reset form
+      const modal = document.querySelector("#modal-signup");
+      M.Modal.getInstance(modal).close();
+      signupForm.reset();
+    });
 });
 
 // logout
