@@ -2,6 +2,20 @@ const pozdrav = (arg) => {
   console.log("hello " + arg);
 };
 
+const pozdrav2 = (arg) => {};
+
+// add admin cloud function
+const adminForm = document.querySelector(".admin-actions");
+adminForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const adminEmail = document.querySelector("#admin-email").value;
+  const addAdminRole = functions.httpsCallable("addAdminRole");
+  addAdminRole({ email: adminEmail }).then((result) => {
+    console.log(result);
+  });
+});
+
 //GET DATA FROM FIRESTORE
 // db.collection('guides').get().then() .......je asynchronní task, může trvat různě dlouho, když je dokončen je vyhozena callback function
 //callback funkce vezme odpověď z db.collection('guides').get()
@@ -10,20 +24,26 @@ const pozdrav = (arg) => {
 auth.onAuthStateChanged((user) => {
   if (user) {
     console.log("user is logged in as" + user.email);
+    user.getIdTokenResult().then(getIdTokenResult => {
+      console.log("is user admin?: " + getIdTokenResult.claims.admin)
+      user.admin= getIdTokenResult.claims.admin;
+      setupUI(user);
+    })
+
     db.collection("guides").onSnapshot(
       (snapshot) => {
         setupGuides(snapshot.docs);
       },
       (err) => console.log(err.message)
     );
-    setupUI(user);
+    
     // //load data from database after represh page - there si no listener
     // db.collection("guides")
     //   .get()
     //   .then((snapshot) => {
     //     setupGuides(snapshot.docs);
     //   });
-  } else {
+  }else{
     setupGuides([]);
     setupUI();
   }
@@ -101,3 +121,5 @@ loginForm.addEventListener("submit", (e) => {
     loginForm.reset();
   });
 });
+
+//
